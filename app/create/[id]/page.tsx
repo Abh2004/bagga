@@ -1,90 +1,93 @@
-'use client'
+'use client';
 
-import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { FlashlightIcon as FlashIcon, FlashlightOffIcon as FlashOffIcon, RotateCcw, Camera } from 'lucide-react'
-import { isLinkValid, saveFolder } from '@/lib/utils'
+import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { FlashlightIcon as FlashIcon, FlashlightOffIcon as FlashOffIcon, RotateCcw } from 'lucide-react';
+import { isLinkValid, saveFolder } from '@/lib/utils';
+import { useParams } from 'next/navigation';
 
-export default function CreateFolder({ params }: { params: { id: string } }) {
-  const router = useRouter()
-  const [photos, setPhotos] = useState<string[]>([])
-  const [folderName, setFolderName] = useState('')
-  const [isFlashOn, setIsFlashOn] = useState(false)
-  const [orientation, setOrientation] = useState('portrait')
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
+export default function CreateFolder() {
+  const router = useRouter();
+  const params = useParams(); // Use Next.js hook to get dynamic route parameters.
+  const { id } = params as { id: string }; // Ensure type safety for the `id`.
+
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [folderName, setFolderName] = useState('');
+  const [isFlashOn, setIsFlashOn] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [orientation, setOrientation] = useState('portrait');
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
           facingMode: 'environment',
           width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        } 
-      })
+          height: { ideal: 1080 },
+        },
+      });
       if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        streamRef.current = stream
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
       }
     } catch (err) {
-      console.error("Error accessing the camera", err)
+      console.error('Error accessing the camera', err);
     }
-  }
+  };
 
   useEffect(() => {
-    startCamera()
+    startCamera();
     return () => {
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop())
+        streamRef.current.getTracks().forEach((track) => track.stop());
       }
-    }
-  }, [])
+    };
+  }, []);
 
   const capturePhoto = () => {
     if (videoRef.current) {
-      const canvas = document.createElement('canvas')
-      canvas.width = videoRef.current.videoWidth
-      canvas.height = videoRef.current.videoHeight
-      canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0)
-      const photo = canvas.toDataURL('image/jpeg')
-      setPhotos([...photos, photo])
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0);
+      const photo = canvas.toDataURL('image/jpeg');
+      setPhotos([...photos, photo]);
     }
-  }
+  };
 
   const removePhoto = (index: number) => {
-    setPhotos(photos.filter((_, i) => i !== index))
-  }
+    setPhotos(photos.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = () => {
-    if (isLinkValid(`/create/${params.id}`) && folderName && photos.length > 0) {
-      saveFolder(folderName, photos)
-      router.push('/dashboard')
+    if (isLinkValid(`/create/${id}`) && folderName && photos.length > 0) {
+      saveFolder(folderName, photos);
+      router.push('/dashboard');
     } else {
-      alert('Invalid link or missing folder name/photos')
+      alert('Invalid link or missing folder name/photos');
     }
-  }
+  };
 
   const toggleFlash = () => {
-    setIsFlashOn(!isFlashOn)
+    setIsFlashOn(!isFlashOn);
     // Note: Flash functionality would require additional hardware API support
-  }
+  };
 
   return (
     <div className="fixed inset-0 bg-black">
-      {/* Camera View */}
       <div className="relative h-full">
-        <video 
-          ref={videoRef} 
-          autoPlay 
-          playsInline 
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
           className="h-full w-full object-cover"
         />
-        
-        {/* Grid Overlay */}
+
         <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none">
           <div className="border-r border-white/30 col-start-1"></div>
           <div className="border-r border-white/30 col-start-2"></div>
@@ -92,10 +95,9 @@ export default function CreateFolder({ params }: { params: { id: string } }) {
           <div className="border-b border-white/30 row-start-2"></div>
         </div>
 
-        {/* Camera Controls */}
         <div className="absolute inset-x-0 top-6 flex justify-between px-6">
           <div className="flex flex-col gap-4">
-            <button 
+            <button
               onClick={toggleFlash}
               className="text-white p-2 rounded-full hover:bg-white/10"
             >
@@ -114,7 +116,6 @@ export default function CreateFolder({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* Shutter Button */}
         <div className="absolute right-6 top-1/2 -translate-y-1/2">
           <button
             onClick={capturePhoto}
@@ -124,7 +125,6 @@ export default function CreateFolder({ params }: { params: { id: string } }) {
           </button>
         </div>
 
-        {/* Photo Preview */}
         <div className="absolute left-4 top-1/2 -translate-y-1/2 space-y-2">
           {photos.map((photo, index) => (
             <div key={index} className="relative w-16 h-16">
@@ -144,7 +144,6 @@ export default function CreateFolder({ params }: { params: { id: string } }) {
           ))}
         </div>
 
-        {/* Bottom Controls */}
         <div className="absolute bottom-6 inset-x-0 px-6">
           <Input
             placeholder="Folder Name"
@@ -152,8 +151,8 @@ export default function CreateFolder({ params }: { params: { id: string } }) {
             onChange={(e) => setFolderName(e.target.value)}
             className="bg-white/10 border-0 text-white placeholder:text-white/50"
           />
-          <Button 
-            onClick={handleSubmit} 
+          <Button
+            onClick={handleSubmit}
             className="w-full mt-2"
             variant="secondary"
           >
@@ -162,6 +161,5 @@ export default function CreateFolder({ params }: { params: { id: string } }) {
         </div>
       </div>
     </div>
-  )
+  );
 }
-

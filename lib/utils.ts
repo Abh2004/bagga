@@ -9,10 +9,11 @@ export function generateUniqueLink(): string {
   return `${window.location.origin}/create/${Math.random().toString(36).substr(2, 9)}`
 }
 
-export function isLinkValid(link: string): boolean {
-  // Implement link validation logic here
-  return true
-}
+export const isLinkValid = (link: string): boolean => {
+  // Example logic to validate the link
+  return link.startsWith('https://');
+};
+
 
 export function saveFolder(name: string, photos: string[]) {
   const folders = JSON.parse(localStorage.getItem('folders') || '{}')

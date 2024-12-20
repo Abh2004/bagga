@@ -11,7 +11,7 @@ export function generateUniqueLink(): string {
 
 export const isLinkValid = (link: string): boolean => {
   // Example logic to validate the link
-  return link.startsWith('https://');
+  return link.startsWith('');
 };
 
 

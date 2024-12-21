@@ -11,14 +11,13 @@ import { useParams } from 'next/navigation';
 
 export default function CreateFolder() {
   const router = useRouter();
-  const params = useParams(); // Use Next.js hook to get dynamic route parameters.
-  const { id } = params as { id: string }; // Ensure type safety for the `id`.
+  const params = useParams();
+  const { id } = params as { id: string };
 
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<Array<{ dataUrl: string; timestamp: string }>>([]);
   const [folderName, setFolderName] = useState('');
   const [isFlashOn, setIsFlashOn] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [orientation, setOrientation] = useState('portrait');
+  const [orientation] = useState('portrait');
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -54,9 +53,38 @@ export default function CreateFolder() {
       const canvas = document.createElement('canvas');
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
-      canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0);
-      const photo = canvas.toDataURL('image/jpeg');
-      setPhotos([...photos, photo]);
+      const ctx = canvas.getContext('2d');
+      
+      if (ctx) {
+        // Draw the video frame
+        ctx.drawImage(videoRef.current, 0, 0);
+        
+        // Get current timestamp
+        const now = new Date();
+        const timestamp = now.toLocaleString();
+        
+        // Configure text style
+        ctx.font = '24px Arial';
+        ctx.fillStyle = 'white';
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 2;
+        
+        // Position timestamp in bottom left corner with padding
+        const padding = 10;
+        const textX = padding;
+        const textY = canvas.height - padding;
+        
+        // Add text stroke for better visibility
+        ctx.strokeText(timestamp, textX, textY);
+        ctx.fillText(timestamp, textX, textY);
+        
+        const photo = {
+          dataUrl: canvas.toDataURL('image/jpeg'),
+          timestamp: timestamp
+        };
+        
+        setPhotos([...photos, photo]);
+      }
     }
   };
 
@@ -66,7 +94,8 @@ export default function CreateFolder() {
 
   const handleSubmit = () => {
     if (isLinkValid(`/create/${id}`) && folderName && photos.length > 0) {
-      saveFolder(folderName, photos);
+      // Modify saveFolder to handle the new photo format
+      saveFolder(folderName, photos.map(photo => photo.dataUrl));
       router.push('/dashboard');
     } else {
       alert('Invalid link or missing folder name/photos');
@@ -75,7 +104,6 @@ export default function CreateFolder() {
 
   const toggleFlash = () => {
     setIsFlashOn(!isFlashOn);
-    // Note: Flash functionality would require additional hardware API support
   };
 
   return (
@@ -87,13 +115,6 @@ export default function CreateFolder() {
           playsInline
           className="h-full w-full object-cover"
         />
-
-        <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none">
-          <div className="border-r border-white/30 col-start-1"></div>
-          <div className="border-r border-white/30 col-start-2"></div>
-          <div className="border-b border-white/30 row-start-1"></div>
-          <div className="border-b border-white/30 row-start-2"></div>
-        </div>
 
         <div className="absolute inset-x-0 top-6 flex justify-between px-6">
           <div className="flex flex-col gap-4">
@@ -125,23 +146,34 @@ export default function CreateFolder() {
           </button>
         </div>
 
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 space-y-2">
-          {photos.map((photo, index) => (
-            <div key={index} className="relative w-16 h-16">
-              <Image
-                src={photo}
-                alt={`Captured ${index}`}
-                fill
-                className="object-cover rounded"
-              />
-              <button
-                onClick={() => removePhoto(index)}
-                className="absolute -top-1 -right-1 bg-black/50 rounded-full p-1"
-              >
-                <RotateCcw className="w-4 h-4 text-white" />
-              </button>
-            </div>
-          ))}
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 max-h-80 overflow-y-auto 
+          [&::-webkit-scrollbar]:w-1
+          [&::-webkit-scrollbar-track]:bg-black/20
+          [&::-webkit-scrollbar-thumb]:bg-white/50
+          [&::-webkit-scrollbar-thumb]:rounded-full
+          [&::-webkit-scrollbar-thumb]:hover:bg-white/70
+          hover:pr-2 transition-all">
+          <div className="space-y-2 p-2">
+            {photos.map((photo, index) => (
+              <div key={index} className="relative w-16 h-16">
+                <Image
+                  src={photo.dataUrl}
+                  alt={`Captured ${index}`}
+                  fill
+                  className="object-cover rounded"
+                />
+                <button
+                  onClick={() => removePhoto(index)}
+                  className="absolute -top-1 -right-1 bg-black/50 rounded-full p-1"
+                >
+                  <RotateCcw className="w-4 h-4 text-white" />
+                </button>
+              </div>
+            ))}
+          </div>
+          {photos.length > 5 && (
+            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+          )}
         </div>
 
         <div className="absolute bottom-6 inset-x-0 px-6">
